@@ -23,9 +23,8 @@ int flow = -1;
 int carsOnBridge = 0;
 int numberInDirection = 0;
 int currDir = -1;
-sem_t sem;
 
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+sem_t sem;
 
 void initialize(){
 
@@ -82,15 +81,8 @@ void * leaveBridge(void * car){
 	struct car * temp = (struct car*)car;
 	sem_post(&sem);
 	numberInDirection++;
-	//char * s;
 	char * s = ((temp->direction == 'S')? "South" : "North");
 
-	/**
-	if(temp -> direction == 'S'){
-		s = "South";
-	}else{
-		s = "North";
-	*/
 	if(temp -> direction != currDir){
    		printf("Direction: %s\n", s);
 		currDir = temp -> direction;
@@ -105,14 +97,14 @@ void * leaveBridge(void * car){
 void * drive(void * currentCar){
 
 	struct car * temp = (struct car *) currentCar;
-	//N == 1 S == 0
 	int p = -1, dir = temp -> direction, j = 0;
 
 	while(p != dir){
 		sleep(1);
 		sem_post(&sem);
 
-		//if 3 straight cars in one direction
+		//if 3 straight cars in one direction switch direction
+		//to allow cars to cross in other direction 
 		if(numberInDirection == 3){
 			numberInDirection = 0;
 			flow = ((flow == 'N')? 'S' : 'N');
@@ -129,11 +121,6 @@ void * drive(void * currentCar){
 			break;
 		}
 		j++;
-      	if(j >= 5){
-      		flow = -1;
-      		numberInDirection = 0;
-      		j = 0;
-      	}
 		sem_wait(&sem);
 	}
 	sem_wait(&sem);
@@ -159,7 +146,6 @@ int main(){
 
     while(scanf("%s %lc %d %d", user, &directionIn, &arrival, &duration) != EOF){
 
-    	//here north is represented as 1, south is 0
 		enqueue(user, directionIn, arrival, duration);
 		counter++;
 	}
@@ -184,5 +170,5 @@ int main(){
 		pthread_join(tid[i], NULL);
 	}
 	//destroy semaphore since its not longer needed
-	//sem_destroy(&sem);
+	sem_destroy(&sem);
 }
